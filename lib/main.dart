@@ -43,11 +43,12 @@ class PageControllerClass {
 
   PageControllerClass._internal() {
     _children = [
+      LoginPage(),
       SetupPageOne(),
       SetupPageTwo(),
       SetupPageThree(),
       SetupPageFour(),
-      LoginPage(),
+      HomePage(),
     ];
     _pageController = PageController();
   }
@@ -56,13 +57,9 @@ class PageControllerClass {
   PageController get pageController => _pageController;
   List<Widget> get children => _children;
 
-  void setIndex(int index) {
+  void setIndex(int index, {bool animate = true}) {
     _currentIndex = index;
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    _pageController.jumpToPage(index);
   }
 }
 
@@ -76,24 +73,6 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  @override
-  void initState() {
-    super.initState();
-    _checkAccessCode();
-  }
-
-  Future<void> _checkAccessCode() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? accessCode = prefs.getString('access_code');
-    if (accessCode != null) {
-      // Access code exists, navigate to login page after the current build cycle
-      Future.delayed(Duration.zero, () {
-        PageControllerClass controllerClass = PageControllerClass();
-        controllerClass.setIndex(4);
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     PageControllerClass controllerClass = PageControllerClass();
@@ -164,7 +143,7 @@ class SetupPageOne extends StatelessWidget {
                 foregroundColor: Colors.black,
               ),
               onPressed: () {
-                controllerClass.setIndex(1);
+                controllerClass.setIndex(2);
               },
               child: const Text('Add Account'),
             ),
@@ -288,7 +267,7 @@ class _SetupPageTwoState extends State<SetupPageTwo> {
             },
           );
           if (response.statusCode == 200) {
-            PageControllerClass().setIndex(2);
+            PageControllerClass().setIndex(3);
             var data = jsonDecode(response.body);
             SharedPreferences prefs = await SharedPreferences.getInstance();
             await prefs.setString('two_factor_secret', scanData.code!);
@@ -369,7 +348,7 @@ class _SetupPageThreeState extends State<SetupPageThree> {
       final data = jsonDecode(response.body);
       if (data['two_factor_setup'] == 2) {
         _timer.cancel();
-        PageControllerClass().setIndex(3); // Move to the next page
+        PageControllerClass().setIndex(4); // Move to the next page
       }
     } else {
       // Handle error if needed
@@ -514,7 +493,7 @@ class _SetupPageFourState extends State<SetupPageFour> {
     if (_enteredCode == _confirmCode) {
       _saveCode(_enteredCode);
       // Navigate to the next page or show a success message
-      PageControllerClass().setIndex(4); // Assuming next index is 4
+      PageControllerClass().setIndex(5); // Assuming next index is 4
     } else {
       setState(() {
         _errorMessage = "The codes do not match. Please try again.";
@@ -663,11 +642,25 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   String _enteredCode = '';
   String? _errorMessage;
+  
+  Future<void> _checkAccessCode() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessCode = prefs.getString('access_code');
+    if (accessCode == null) {
+      // Access code exists, navigate to login page after the current build cycle
+      PageControllerClass controllerClass = PageControllerClass();
+      controllerClass.setIndex(1, animate: false);
+    }
+  }
 
   void _onKeyPressed(String value) {
     setState(() {
       if (_enteredCode.length < 6) {
+        _errorMessage = null;
         _enteredCode += value;
+        if (_enteredCode.length == 6) {
+          _validateAndLogin();
+        }
       }
     });
   }
@@ -680,20 +673,19 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  Future<void> _saveCode(String code) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('access_code', code);
-  }
-
-  void _validateAndSave() {
+  void _validateAndLogin() async {
     if (_enteredCode.length == 6) {
-      _saveCode(_enteredCode);
-      // Navigate to the main page or show a success message
-      Navigator.pushReplacementNamed(context, '/main');
-    } else {
-      setState(() {
-        _errorMessage = "Please enter a 6-digit code.";
-      });
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessCode = prefs.getString('access_code');
+      if (_enteredCode == accessCode) {
+        PageControllerClass controllerClass = PageControllerClass();
+        controllerClass.setIndex(5);
+      } else {
+        setState(() {
+          _errorMessage = "Please enter the right code.";
+          _enteredCode = '';
+        });
+      }
     }
   }
 
@@ -775,6 +767,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    _checkAccessCode();
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -815,13 +808,50 @@ class _LoginPageState extends State<LoginPage> {
               ),
             const SizedBox(height: 20.0),
             _buildNumpad(),
-            const SizedBox(height: 20.0),
-            ElevatedButton(
-              onPressed: _validateAndSave,
-              child: const Text('Login'),
-            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          const Padding(
+            padding: EdgeInsets.only(top: 75.0),
+            child: Text(
+              'Ready to use!',
+              style: TextStyle(fontSize: 28.0),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 150.0),
+            child: Text(
+              'You can access - when',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20.0),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 80.0, vertical: 10.0),
+            child: Text(
+              'you are, for example, logging in to your accounts.',
+              style: TextStyle(fontSize: 20.0),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
       ),
     );
   }
