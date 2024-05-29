@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_xlider/flutter_xlider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -49,6 +50,7 @@ class PageControllerClass {
       SetupPageThree(),
       SetupPageFour(),
       HomePage(),
+      AcceptRequestPage(),
     ];
     _pageController = PageController();
   }
@@ -642,7 +644,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   String _enteredCode = '';
   String? _errorMessage;
-  
+
   Future<void> _checkAccessCode() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessCode = prefs.getString('access_code');
@@ -650,6 +652,23 @@ class _LoginPageState extends State<LoginPage> {
       // Access code exists, navigate to login page after the current build cycle
       PageControllerClass controllerClass = PageControllerClass();
       controllerClass.setIndex(1, animate: false);
+    }
+    // get request to check if the status is 200
+    var _bearerToken = prefs.getString('two_factor_secret');
+    final response = await http.get(
+      Uri.parse(
+          'https://zealand.moedekjaer.dk/final/api/public/api/two-factor-auth-status'),
+      headers: {
+        'Authorization': 'Bearer $_bearerToken',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      // Access code exists, navigate to login page after the current build cycle
+      PageControllerClass controllerClass = PageControllerClass();
+      controllerClass.setIndex(1, animate: false);
+      prefs.remove('access_code');
+      prefs.remove('two_factor_secret');
     }
   }
 
@@ -823,9 +842,31 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  Future<void> checkForNewRequests() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? bearerToken = prefs.getString('two_factor_secret');
+    final response = await http.get(
+      Uri.parse(
+          'https://zealand.moedekjaer.dk/final/api/public/api/two-factor-auth-request'),
+      headers: {
+        'Authorization': 'Bearer $bearerToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      PageControllerClass controllerClass = PageControllerClass();
+      prefs.setString('two_factor_request', response.body);
+      controllerClass.setIndex(7, animate: false);
+    } else {
+      await Future.delayed(const Duration(seconds: 5));
+      checkForNewRequests();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    checkForNewRequests();
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
@@ -844,7 +885,8 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 80.0, vertical: 10.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 80.0, vertical: 10.0),
             child: Text(
               'you are, for example, logging in to your accounts.',
               style: TextStyle(fontSize: 20.0),
@@ -852,6 +894,116 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class AcceptRequestPage extends StatefulWidget {
+  const AcceptRequestPage({Key? key}) : super(key: key);
+
+  @override
+  _AcceptRequestPageState createState() => _AcceptRequestPageState();
+}
+
+class _AcceptRequestPageState extends State<AcceptRequestPage> {
+  double _sliderValue = 0.0;
+  late SharedPreferences prefs;
+
+  void _onSliderValueChange(double value) {
+    setState(() {
+      _sliderValue = value;
+    });
+
+    if (_sliderValue == 100.0) {
+      _acceptRequest();
+    }
+  }
+
+  Future<void> _acceptRequest() async {
+    // Your logic to accept the request goes here
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Request Accepted')),
+    );
+    PageControllerClass controllerClass = PageControllerClass();
+    controllerClass.setIndex(5);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(top: 75.0),
+              child: Text(
+                'New Request!',
+                style: TextStyle(fontSize: 28.0),
+              ),
+            ),
+            const Text(
+              'Slide to Accept the Request',
+              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20.0),
+            Container(
+              width: 300.0,
+              child: FlutterSlider(
+                values: [_sliderValue],
+                max: 100,
+                min: 0,
+                handlerAnimation: FlutterSliderHandlerAnimation(
+                    curve: Curves.elasticOut,
+                    reverseCurve: Curves.bounceIn,
+                    duration: Duration(milliseconds: 500),
+                    scale: 1.5),
+                handler: FlutterSliderHandler(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 5.0,
+                        spreadRadius: 2.0,
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.green,
+                    ),
+                    padding: const EdgeInsets.all(8.0),
+                    child: const Icon(
+                      Icons.chevron_right,
+                      color: Colors.white,
+                      size: 32.0,
+                    ),
+                  ),
+                ),
+                trackBar: FlutterSliderTrackBar(
+                  activeTrackBar: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  inactiveTrackBar: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                tooltip: FlutterSliderTooltip(
+                  disabled: true,
+                ),
+                onDragging: (handlerIndex, lowerValue, upperValue) {
+                  _onSliderValueChange(lowerValue);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
