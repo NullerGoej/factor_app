@@ -516,9 +516,10 @@ class _SetupPageFourState extends State<SetupPageFour> {
             child: Text(
               value,
               style: const TextStyle(
-                  fontSize: 32.0,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF77DD77)), // Green color
+                fontSize: 32.0,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF77DD77), // Green color
+              ),
             ),
           ),
         ),
@@ -533,8 +534,11 @@ class _SetupPageFourState extends State<SetupPageFour> {
         child: Container(
           margin: const EdgeInsets.all(8.0),
           child: const Center(
-            child: Icon(Icons.backspace,
-                size: 32.0, color: Color(0xFF77DD77)), // Green color
+            child: Icon(
+              Icons.backspace,
+              size: 32.0,
+              color: Color(0xFF77DD77), // Green color
+            ),
           ),
         ),
       ),
@@ -568,7 +572,8 @@ class _SetupPageFourState extends State<SetupPageFour> {
         Row(
           children: <Widget>[
             const Expanded(
-                child: SizedBox.shrink()), // Placeholder for alignment
+              child: SizedBox.shrink(),
+            ), // Placeholder for alignment
             _buildKey('0'),
             _buildDeleteKey(),
           ],
@@ -585,15 +590,19 @@ class _SetupPageFourState extends State<SetupPageFour> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Center(
-              child: Text(
-                _isConfirming
-                    ? 'Repeat your personal code'
-                    : 'Create your personal code',
-                style: const TextStyle(
-                    fontSize: 24.0, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
+            const SizedBox(height: 40.0),
+            Text(
+              _isConfirming
+                  ? 'Repeat your personal code'
+                  : 'Create your personal code',
+              style:
+                  const TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const Text(
+              'Enter your 6-digit access code',
+              style: TextStyle(fontSize: 16.0),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20.0),
             Row(
@@ -602,31 +611,57 @@ class _SetupPageFourState extends State<SetupPageFour> {
                 6,
                 (index) => Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                  width: 40.0,
-                  height: 40.0,
+                  width: 20.0,
+                  height: 20.0,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Center(
-                    child: Text(
-                      _isConfirming
-                          ? (_confirmCode.length > index ? '•' : '')
-                          : (_enteredCode.length > index ? '•' : ''),
-                      style: const TextStyle(fontSize: 24.0),
-                    ),
+                    shape: BoxShape.circle,
+                    color: _isConfirming
+                        ? (_confirmCode.length > index
+                            ? Colors.green
+                            : Colors.grey)
+                        : (_enteredCode.length > index
+                            ? Colors.green
+                            : Colors.grey),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 20.0),
             if (_errorMessage != null)
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red),
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             const SizedBox(height: 20.0),
             _buildNumpad(),
+            const SizedBox(height: 20.0),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _enteredCode = '';
+                  _confirmCode = '';
+                  _isConfirming = false;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0, vertical: 10.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8.0),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -645,30 +680,51 @@ class _LoginPageState extends State<LoginPage> {
   String _enteredCode = '';
   String? _errorMessage;
 
-  Future<void> _checkAccessCode() async {
+  Future<void> _checkAccessCode(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessCode = prefs.getString('access_code');
     if (accessCode == null) {
-      // Access code exists, navigate to login page after the current build cycle
+      // Navigate to login page after the current build cycle
       PageControllerClass controllerClass = PageControllerClass();
       controllerClass.setIndex(1, animate: false);
+      return;
     }
-    // get request to check if the status is 200
-    var _bearerToken = prefs.getString('two_factor_secret');
-    final response = await http.get(
-      Uri.parse(
-          'https://zealand.moedekjaer.dk/final/api/public/api/two-factor-auth-status'),
-      headers: {
-        'Authorization': 'Bearer $_bearerToken',
-      },
-    );
 
-    if (response.statusCode != 200) {
-      // Access code exists, navigate to login page after the current build cycle
+    // Ensure bearer token is not null
+    var _bearerToken = prefs.getString('two_factor_secret');
+    if (_bearerToken == null) {
       PageControllerClass controllerClass = PageControllerClass();
       controllerClass.setIndex(1, animate: false);
-      prefs.remove('access_code');
-      prefs.remove('two_factor_secret');
+      return;
+    }
+
+    // Make the HTTP request
+    int attempts = 0;
+    while (attempts < 3) {
+      final response = await http.get(
+        Uri.parse(
+            'https://zealand.moedekjaer.dk/final/api/public/api/two-factor-auth-status'),
+        headers: {
+          'Authorization': 'Bearer $_bearerToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Success, break the loop
+        break;
+      } else if (response.statusCode == 500) {
+        // Server error, increment attempts and try again
+        attempts++;
+        continue;
+      } else {
+        // Other error, navigate to login page
+        PageControllerClass controllerClass = PageControllerClass();
+        controllerClass.setIndex(1, animate: false);
+        // Remove access code and bearer token
+        await prefs.remove('access_code');
+        await prefs.remove('two_factor_secret');
+        break;
+      }
     }
   }
 
@@ -786,16 +842,22 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    _checkAccessCode();
+    _checkAccessCode(context);
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            const SizedBox(height: 40.0),
             const Text(
-              'Enter your 6-digit access code',
+              'Username',
               style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const Text(
+              'Enter your personal code to access',
+              style: TextStyle(fontSize: 16.0),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20.0),
@@ -805,25 +867,24 @@ class _LoginPageState extends State<LoginPage> {
                 6,
                 (index) => Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                  width: 40.0,
-                  height: 40.0,
+                  width: 20.0,
+                  height: 20.0,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Center(
-                    child: Text(
-                      _enteredCode.length > index ? '•' : '',
-                      style: const TextStyle(fontSize: 24.0),
-                    ),
+                    shape: BoxShape.circle,
+                    color: _enteredCode.length > index
+                        ? Colors.green
+                        : Colors.grey,
                   ),
                 ),
               ),
             ),
             if (_errorMessage != null)
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red),
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             const SizedBox(height: 20.0),
             _buildNumpad(),
@@ -920,6 +981,14 @@ class _AcceptRequestPageState extends State<AcceptRequestPage> {
     }
   }
 
+  void _onDragCompleted(int handlerIndex, double lowerValue, double upperValue) {
+    if (_sliderValue != 100.0) {
+      setState(() {
+        _sliderValue = 0.0;
+      });
+    }
+  }
+
   Future<void> _acceptRequest() async {
     // Your logic to accept the request goes here
     ScaffoldMessenger.of(context).showSnackBar(
@@ -936,62 +1005,51 @@ class _AcceptRequestPageState extends State<AcceptRequestPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Padding(
-              padding: EdgeInsets.only(top: 75.0),
-              child: Text(
-                'New Request!',
-                style: TextStyle(fontSize: 28.0),
-              ),
-            ),
             const Text(
-              'Slide to Accept the Request',
+              'Account name',
               style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20.0),
+            const Text(
+              'Swipe to approve',
+              style: TextStyle(fontSize: 16.0),
+            ),
+            const SizedBox(height: 40.0),
             Container(
               width: 300.0,
+              height: 60.0,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.green),
+                borderRadius: BorderRadius.circular(30.0),
+              ),
               child: FlutterSlider(
                 values: [_sliderValue],
                 max: 100,
                 min: 0,
                 handlerAnimation: FlutterSliderHandlerAnimation(
-                    curve: Curves.elasticOut,
-                    reverseCurve: Curves.bounceIn,
-                    duration: Duration(milliseconds: 500),
-                    scale: 1.5),
+                  curve: Curves.elasticOut,
+                  reverseCurve: Curves.bounceIn,
+                  duration: const Duration(milliseconds: 500),
+                  scale: 1.5,
+                ),
                 handler: FlutterSliderHandler(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 5.0,
-                        spreadRadius: 2.0,
-                      ),
-                    ],
+                    color: Colors.green,
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.green,
-                    ),
-                    padding: const EdgeInsets.all(8.0),
-                    child: const Icon(
-                      Icons.chevron_right,
-                      color: Colors.white,
-                      size: 32.0,
-                    ),
+                  child: const Icon(
+                    Icons.chevron_right,
+                    color: Colors.white,
+                    size: 32.0,
                   ),
                 ),
                 trackBar: FlutterSliderTrackBar(
                   activeTrackBar: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.green.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(30.0),
                   ),
                   inactiveTrackBar: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(30.0),
                   ),
                 ),
                 tooltip: FlutterSliderTooltip(
@@ -1000,7 +1058,13 @@ class _AcceptRequestPageState extends State<AcceptRequestPage> {
                 onDragging: (handlerIndex, lowerValue, upperValue) {
                   _onSliderValueChange(lowerValue);
                 },
+                onDragCompleted: (handlerIndex, lowerValue, upperValue) => _onDragCompleted(handlerIndex, lowerValue as double, upperValue as double),
               ),
+            ),
+            const SizedBox(height: 20.0),
+            const Text(
+              'Approve',
+              style: TextStyle(fontSize: 18.0, color: Colors.black),
             ),
           ],
         ),
