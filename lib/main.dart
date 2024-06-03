@@ -12,6 +12,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var prefs = await SharedPreferences.getInstance();
   runApp(MainApp(prefs: prefs));
+  prefs.setString('two_factor_secret', '2JSVNK2O4R6VSRC3USXAL7LU');
+  prefs.setString('access_code', '000000');
 }
 
 class MainApp extends StatelessWidget {
@@ -916,7 +918,7 @@ class _HomePageState extends State<HomePage> {
 
     if (response.statusCode == 200) {
       PageControllerClass controllerClass = PageControllerClass();
-      prefs.setString('two_factor_request', response.body);
+      await prefs.setString('two_factor_request', response.body);
       controllerClass.setIndex(7, animate: false);
     } else {
       await Future.delayed(const Duration(seconds: 5));
@@ -970,18 +972,24 @@ class AcceptRequestPage extends StatefulWidget {
 class _AcceptRequestPageState extends State<AcceptRequestPage> {
   double _sliderValue = 0.0;
   late SharedPreferences prefs;
+  late String _action = '';
+  late String _ip = '';
+  late String _id;
+  bool _hasRequestBeenAccepted = false;
 
   void _onSliderValueChange(double value) {
     setState(() {
       _sliderValue = value;
     });
 
-    if (_sliderValue == 100.0) {
+    if (_sliderValue == 100.0 && !_hasRequestBeenAccepted) {
       _acceptRequest();
+      _hasRequestBeenAccepted = true;
     }
   }
 
-  void _onDragCompleted(int handlerIndex, double lowerValue, double upperValue) {
+  void _onDragCompleted(
+      int handlerIndex, double lowerValue, double upperValue) {
     if (_sliderValue != 100.0) {
       setState(() {
         _sliderValue = 0.0;
@@ -990,24 +998,59 @@ class _AcceptRequestPageState extends State<AcceptRequestPage> {
   }
 
   Future<void> _acceptRequest() async {
-    // Your logic to accept the request goes here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Request Accepted')),
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? bearerToken = prefs.getString('two_factor_secret');
+
+    final response = await http.post(
+      Uri.parse(
+          'https://zealand.moedekjaer.dk/final/api/public/api/two-factor-auth-request-accept'),
+      headers: {
+        'Authorization': 'Bearer $bearerToken',
+      },
+      body: {
+        'unique_id': _id,
+      },
     );
-    PageControllerClass controllerClass = PageControllerClass();
-    controllerClass.setIndex(5);
+
+    if (response.statusCode == 200) {
+      PageControllerClass controllerClass = PageControllerClass();
+      await prefs.remove('two_factor_request');
+      controllerClass.setIndex(5);
+    }
+  }
+
+  Future<void> _getJsonData() async {
+    prefs = await SharedPreferences.getInstance();
+    String? request = prefs.getString('two_factor_request');
+    if (request != null) {
+      var data = jsonDecode(request) as Map<String, dynamic>;
+      var requestData = data['request'] as Map<String, dynamic>;
+      String? action = requestData['action'] as String?;
+      String? ip = requestData['ip_address'] as String?;
+      String? id = requestData['unique_id'] as String?;
+      if (action != null && ip != null && id != null && mounted) {
+        setState(() {
+          _action = action;
+          _ip = ip;
+          _id = id;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    _getJsonData();
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Account name',
-              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+            Text(
+              '$_action from $_ip',
+              style:
+                  const TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
             const Text(
               'Swipe to approve',
@@ -1058,7 +1101,9 @@ class _AcceptRequestPageState extends State<AcceptRequestPage> {
                 onDragging: (handlerIndex, lowerValue, upperValue) {
                   _onSliderValueChange(lowerValue);
                 },
-                onDragCompleted: (handlerIndex, lowerValue, upperValue) => _onDragCompleted(handlerIndex, lowerValue as double, upperValue as double),
+                onDragCompleted: (handlerIndex, lowerValue, upperValue) =>
+                    _onDragCompleted(handlerIndex, lowerValue as double,
+                        upperValue as double),
               ),
             ),
             const SizedBox(height: 20.0),
