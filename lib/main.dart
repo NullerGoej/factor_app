@@ -1106,11 +1106,6 @@ class _AcceptRequestPageState extends State<AcceptRequestPage> {
                         upperValue as double),
               ),
             ),
-            const SizedBox(height: 20.0),
-            const Text(
-              'Approve',
-              style: TextStyle(fontSize: 18.0, color: Colors.black),
-            ),
           ],
         ),
       ),
