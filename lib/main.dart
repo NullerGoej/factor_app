@@ -7,8 +7,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var prefs = await SharedPreferences.getInstance();
   runApp(MainApp(prefs: prefs));
-  //prefs.setString('two_factor_secret', '2JSVNK2O4R6VSRC3USXAL7LU');
-  //prefs.setString('access_code', '000000');
 }
 
 class MainApp extends StatelessWidget {
