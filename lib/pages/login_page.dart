@@ -39,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
     while (attempts < 3) {
       final response = await http.get(
         Uri.parse(
-            'https://zealand.moedekjaer.dk/final/api/public/api/two-factor-auth-status'),
+            'https://accessio-api.moedekjaer.dk/two-factor-auth-status'),
         headers: {
           'Authorization': 'Bearer $_bearerToken',
         },

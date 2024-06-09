@@ -47,7 +47,7 @@ class _AcceptRequestPageState extends State<AcceptRequestPage> {
 
     final response = await http.post(
       Uri.parse(
-          'https://zealand.moedekjaer.dk/final/api/public/api/two-factor-auth-request-accept'),
+          'https://accessio-api.moedekjaer.dk/two-factor-auth-request-accept'),
       headers: {
         'Authorization': 'Bearer $bearerToken',
       },

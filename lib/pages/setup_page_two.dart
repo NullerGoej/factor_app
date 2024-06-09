@@ -93,7 +93,7 @@ class _SetupPageTwoState extends State<SetupPageTwo> {
           var os = UniversalPlatform.operatingSystem;
           final response = await http.post(
             Uri.parse(
-                'https://zealand.moedekjaer.dk/final/api/public/api/two-factor-auth-verify'),
+                'https://accessio-api.moedekjaer.dk/two-factor-auth-verify'),
             body: {
               'qr_code': scanData.code,
               'ip_address': ip,

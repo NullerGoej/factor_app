@@ -17,7 +17,7 @@ class _HomePageState extends State<HomePage> {
     String? bearerToken = prefs.getString('two_factor_secret');
     final response = await http.get(
       Uri.parse(
-          'https://zealand.moedekjaer.dk/final/api/public/api/two-factor-auth-request-status'),
+          'https://accessio-api.moedekjaer.dk/two-factor-auth-request-status'),
       headers: {
         'Authorization': 'Bearer $bearerToken',
       },
