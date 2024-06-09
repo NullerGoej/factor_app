@@ -10,35 +10,35 @@ import '../pages/home_page.dart';
 import '../pages/accept_request_page.dart';
 
 class PageControllerClass {
-    int _currentIndex = 0;
-    late PageController _pageController;
-    late List<Widget> _children;
-  
-    static final PageControllerClass _instance = PageControllerClass._internal();
-  
-    factory PageControllerClass() {
-      return _instance;
-    }
-  
-    PageControllerClass._internal() {
-      _children = [
-        LoginPage(),
-        SetupPageOne(),
-        SetupPageTwo(),
-        SetupPageThree(),
-        SetupPageFour(),
-        HomePage(),
-        AcceptRequestPage(),
-      ];
-      _pageController = PageController();
-    }
-  
-    int get currentIndex => _currentIndex;
-    PageController get pageController => _pageController;
-    List<Widget> get children => _children;
-  
-    void setIndex(int index, {bool animate = true}) {
-      _currentIndex = index;
-      _pageController.jumpToPage(index);
-    }
+  int _currentIndex = 0;
+  late PageController _pageController;
+  late List<Widget> _children;
+
+  static final PageControllerClass _instance = PageControllerClass._internal();
+
+  factory PageControllerClass() {
+    return _instance;
   }
+
+  PageControllerClass._internal() {
+    _children = [
+      LoginPage(),
+      SetupPageOne(),
+      SetupPageTwo(),
+      SetupPageThree(),
+      SetupPageFour(),
+      HomePage(),
+      AcceptRequestPage(),
+    ];
+    _pageController = PageController();
+  }
+
+  int get currentIndex => _currentIndex;
+  PageController get pageController => _pageController;
+  List<Widget> get children => _children;
+
+  void setIndex(int index, {bool animate = true}) {
+    _currentIndex = index;
+    _pageController.jumpToPage(index);
+  }
+}
