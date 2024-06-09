@@ -45,9 +45,9 @@ class _MainPageState extends State<MainPage> {
         child: AppBar(
           backgroundColor: const Color(0xFF77DD77),
           title: Padding(
-            padding: const EdgeInsets.only(top: 20.0),
+            padding: const EdgeInsets.only(top: 10.0),
             child: SizedBox(
-              height: 60.0,
+              height: 40.0,
               child: Image.asset('logo.png', fit: BoxFit.cover),
             ),
           ),
