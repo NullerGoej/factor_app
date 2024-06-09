@@ -17,9 +17,11 @@ class SetupPageTwo extends StatefulWidget {
 
 class _SetupPageTwoState extends State<SetupPageTwo> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  Barcode? result;
   late QRViewController controller;
   late StreamSubscription<Barcode> scanSubscription;
   double _opacity = 0.0;
+  bool isSetupReady = true;
 
   @override
   void initState() {
@@ -32,9 +34,33 @@ class _SetupPageTwoState extends State<SetupPageTwo> {
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    controller.pauseCamera();
+  }
+
+  Widget _buildQrView(BuildContext context) {
+    var scanArea = (MediaQuery.of(context).size.width < 400 ||
+            MediaQuery.of(context).size.height < 400)
+        ? 150.0
+        : 300.0;
+    return QRView(
+      key: qrKey,
+      onQRViewCreated: _onQRViewCreated,
+      overlay: QrScannerOverlayShape(
+          borderColor: const Color(0xFF77DD77),
+          borderRadius: 10,
+          borderLength: 30,
+          borderWidth: 10,
+          cutOutSize: scanArea),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Stack(
       children: <Widget>[
+        //Expanded(flex: 4, child: _buildQrView(context)),
         Positioned.fill(
           child: AnimatedOpacity(
             opacity: _opacity,
@@ -83,44 +109,51 @@ class _SetupPageTwoState extends State<SetupPageTwo> {
   }
 
   void _onQRViewCreated(QRViewController controller) {
-    this.controller = controller;
-    var broadcastStream = controller.scannedDataStream.asBroadcastStream();
-    scanSubscription = broadcastStream.listen((scanData) async {
-      if (scanData.code != "") {
-        await scanSubscription.cancel();
-        try {
-          var ip = await http.read(Uri.parse('https://api.ipify.org'));
-          var os = UniversalPlatform.operatingSystem;
-          final response = await http.post(
-            Uri.parse(
-                'https://accessio-api.moedekjaer.dk/two-factor-auth-verify'),
-            body: {
-              'qr_code': scanData.code,
-              'ip_address': ip,
-              'device': os,
-            },
-          );
-          if (response.statusCode == 200) {
-            PageControllerClass().setIndex(3);
-            var data = jsonDecode(response.body);
-            SharedPreferences prefs = await SharedPreferences.getInstance();
-            await prefs.setString('two_factor_secret', scanData.code!);
-            await prefs.setString(
-                'two_factor_6_digit', data['two_factor_6_digit'].toString());
-          } else {
-            _restartScan();
-          }
-        } catch (e) {
-          _restartScan();
+    setState(() {
+      this.controller = controller;
+    });
+    controller.scannedDataStream.listen((scanData) {
+      setState(() {
+        if (result != scanData) {
+          result = scanData;
+          onResultChanged();
         }
-      }
+      });
     });
   }
 
-  void _restartScan() {
-    scanSubscription = controller.scannedDataStream.listen((scanData) {
-      // Handle new scan data
-    });
+  void onResultChanged() async {
+    if (!isSetupReady) {
+      return;
+    }
+
+    if (result?.code != "") {
+      isSetupReady = false;
+      try {
+        var ip = await http.read(Uri.parse('https://api.ipify.org'));
+        var os = UniversalPlatform.operatingSystem;
+        final response = await http.post(
+          Uri.parse(
+              'https://accessio-api.moedekjaer.dk/two-factor-auth-verify'),
+          body: {
+            'qr_code': result?.code,
+            'ip_address': ip,
+            'device': os,
+          },
+        );
+        if (response.statusCode == 200) {
+          PageControllerClass().setIndex(3);
+          var data = jsonDecode(response.body);
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('two_factor_secret', result?.code as String);
+          await prefs.setString(
+              'two_factor_6_digit', data['two_factor_6_digit'].toString());
+        }
+      } catch (e) {
+        print(e);
+      }
+      isSetupReady = true;
+    }
   }
 
   @override

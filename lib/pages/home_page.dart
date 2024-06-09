@@ -28,7 +28,7 @@ class _HomePageState extends State<HomePage> {
       await prefs.setString('two_factor_request', response.body);
       controllerClass.setIndex(7, animate: false);
     } else {
-      await Future.delayed(const Duration(seconds: 5));
+      await Future.delayed(const Duration(seconds: 1));
       checkForNewRequests();
     }
   }
