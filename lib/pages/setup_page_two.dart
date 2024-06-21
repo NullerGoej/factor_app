@@ -99,6 +99,7 @@ class _SetupPageTwoState extends State<SetupPageTwo> {
                       ),
                     ],
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),

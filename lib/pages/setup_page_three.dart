@@ -49,8 +49,7 @@ class _SetupPageThreeState extends State<SetupPageThree> {
     if (_bearerToken == null) return;
 
     final response = await http.get(
-      Uri.parse(
-          'https://accessio-api.moedekjaer.dk/two-factor-auth-status'),
+      Uri.parse('https://accessio-api.moedekjaer.dk/two-factor-auth-status'),
       headers: {
         'Authorization': 'Bearer $_bearerToken',
       },
@@ -77,6 +76,7 @@ class _SetupPageThreeState extends State<SetupPageThree> {
         } else if (snapshot.hasError) {
           return const Center(child: Text('Error retrieving code.'));
         } else {
+          _twoFactorCode = snapshot.data ?? '';
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
