@@ -89,10 +89,6 @@ class _SetupPageThreeState extends State<SetupPageThree> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                Text(
-                  _twoFactorCode,
-                  style: const TextStyle(fontSize: 24.0),
-                ),
                 Expanded(
                   child: Center(
                     child: Padding(
