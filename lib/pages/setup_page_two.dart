@@ -148,6 +148,7 @@ class _SetupPageTwoState extends State<SetupPageTwo> {
           await prefs.setString('two_factor_secret', result?.code as String);
           await prefs.setString(
               'two_factor_6_digit', data['two_factor_6_digit'].toString());
+          print(data);
         }
       } catch (e) {
         print(e);

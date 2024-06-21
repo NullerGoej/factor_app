@@ -41,6 +41,7 @@ class _SetupPageThreeState extends State<SetupPageThree> {
   Future<String> _loadTwoFactorCode() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _bearerToken = prefs.getString('two_factor_secret');
+    print(_bearerToken);
     return prefs.getString('two_factor_6_digit') ?? '';
   }
 

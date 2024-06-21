@@ -48,7 +48,7 @@ class _MainPageState extends State<MainPage> {
             padding: const EdgeInsets.only(top: 10.0),
             child: SizedBox(
               height: 40.0,
-              child: Image.asset('logo.png', fit: BoxFit.cover),
+              child: Image.asset('assets/logo.png', fit: BoxFit.cover),
             ),
           ),
           centerTitle: true,
