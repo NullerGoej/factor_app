@@ -188,11 +188,6 @@ class _LoginPageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const SizedBox(height: 40.0),
-            Text(
-              _email ?? '',
-              style: const TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
             const Text(
               'Enter your personal code to access',
               style: TextStyle(fontSize: 16.0),
