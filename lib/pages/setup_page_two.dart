@@ -146,10 +146,10 @@ class _SetupPageTwoState extends State<SetupPageTwo> {
           PageControllerClass().setIndex(3);
           var data = jsonDecode(response.body);
           SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('email', data['email'].toString());
           await prefs.setString('two_factor_secret', result?.code as String);
           await prefs.setString(
               'two_factor_6_digit', data['two_factor_6_digit'].toString());
-          print(data);
         }
       } catch (e) {
         print(e);

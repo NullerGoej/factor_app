@@ -15,10 +15,12 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   String _enteredCode = '';
   String? _errorMessage;
+  String? _email;
 
   Future<void> _checkAccessCode(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessCode = prefs.getString('access_code');
+    _email = prefs.getString('email');
     if (accessCode == null) {
       // Navigate to login page after the current build cycle
       PageControllerClass controllerClass = PageControllerClass();
@@ -186,9 +188,9 @@ class _LoginPageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const SizedBox(height: 40.0),
-            const Text(
-              'Username',
-              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+            Text(
+              _email ?? '',
+              style: const TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const Text(
