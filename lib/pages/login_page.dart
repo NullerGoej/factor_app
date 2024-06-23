@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,19 +22,38 @@ class _LoginPageState extends State<LoginPage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessCode = prefs.getString('access_code');
     _email = prefs.getString('email');
-    if (accessCode == null) {
-      // Navigate to login page after the current build cycle
-      PageControllerClass controllerClass = PageControllerClass();
-      controllerClass.setIndex(1, animate: false);
-      return;
-    }
-
     // Ensure bearer token is not null
     var _bearerToken = prefs.getString('two_factor_secret');
     if (_bearerToken == null) {
       PageControllerClass controllerClass = PageControllerClass();
       controllerClass.setIndex(1, animate: false);
       return;
+    }
+
+    if (accessCode == null) {
+      if (_bearerToken == null) {
+        // Navigate to login page after the current build cycle
+        PageControllerClass controllerClass = PageControllerClass();
+        controllerClass.setIndex(1, animate: false);
+        return;
+      }
+      final response = await http.get(
+        Uri.parse('https://accessio-api.moedekjaer.dk/two-factor-auth-status'),
+        headers: {
+          'Authorization': 'Bearer $_bearerToken',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['two_factor_setup'] == 2) {
+          PageControllerClass().setIndex(4); // Move to the next page
+          return;
+        }
+        else if (data['two_factor_setup'] == 1) {
+          PageControllerClass().setIndex(3);
+          return;
+        }
+      }
     }
 
     // Make the HTTP request
