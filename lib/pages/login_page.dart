@@ -37,8 +37,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     // Make the HTTP request
-    int attempts = 0;
-    while (attempts < 3) {
+    while (true) {
       final response = await http.get(
         Uri.parse(
             'https://accessio-api.moedekjaer.dk/two-factor-auth-status'),
@@ -51,8 +50,7 @@ class _LoginPageState extends State<LoginPage> {
         // Success, break the loop
         break;
       } else if (response.statusCode == 500) {
-        // Server error, increment attempts and try again
-        attempts++;
+        // Server error, try again
         continue;
       } else {
         // Other error, navigate to login page
