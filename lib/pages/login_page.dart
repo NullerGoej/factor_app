@@ -21,7 +21,6 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _checkAccessCode(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessCode = prefs.getString('access_code');
-    _email = prefs.getString('email');
     // Ensure bearer token is not null
     var _bearerToken = prefs.getString('two_factor_secret');
     if (_bearerToken == null) {
