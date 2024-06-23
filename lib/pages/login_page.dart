@@ -30,37 +30,34 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    if (accessCode == null) {
-      if (_bearerToken == null) {
-        // Navigate to login page after the current build cycle
-        PageControllerClass controllerClass = PageControllerClass();
-        controllerClass.setIndex(1, animate: false);
+    final response = await http.get(
+      Uri.parse('https://accessio-api.moedekjaer.dk/two-factor-auth-status'),
+      headers: {
+        'Authorization': 'Bearer $_bearerToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['two_factor_setup'] == 2 && accessCode == null) {
+        PageControllerClass().setIndex(4); // Move to the next page
+        return;
+      } if (data['two_factor_setup'] == 1) {
+        PageControllerClass().setIndex(3);
         return;
       }
-      final response = await http.get(
-        Uri.parse('https://accessio-api.moedekjaer.dk/two-factor-auth-status'),
-        headers: {
-          'Authorization': 'Bearer $_bearerToken',
-        },
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['two_factor_setup'] == 2) {
-          PageControllerClass().setIndex(4); // Move to the next page
-          return;
-        }
-        else if (data['two_factor_setup'] == 1) {
-          PageControllerClass().setIndex(3);
-          return;
-        }
-      }
+    }
+
+    if (accessCode == null) {
+      PageControllerClass controllerClass = PageControllerClass();
+      controllerClass.setIndex(1, animate: false);
+      return;
     }
 
     // Make the HTTP request
     while (true) {
       final response = await http.get(
-        Uri.parse(
-            'https://accessio-api.moedekjaer.dk/two-factor-auth-status'),
+        Uri.parse('https://accessio-api.moedekjaer.dk/two-factor-auth-status'),
         headers: {
           'Authorization': 'Bearer $_bearerToken',
         },
